@@ -1,0 +1,60 @@
+import 'package:dash_race/helpers/extensions.dart';
+import 'package:flutter/material.dart';
+import 'package:nes_ui/nes_ui.dart';
+
+class LobbyScreen extends StatelessWidget {
+  const LobbyScreen({super.key});
+
+  Widget buildLobby(BuildContext context) {
+    return NesContainer(
+      label: "#Players Joined",
+      width: 360,
+      child: Column(
+        children: context.watchGame.players.map((player) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Row(
+              children: [
+                Image.asset(player.car.sprite, width: 32, height: 32),
+                const SizedBox(width: 10),
+                Text(player.name),
+              ],
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisSize: MainAxisSize.max,
+      spacing: 16,
+      children: [
+        Text(
+          "Scan below QR to join and play the game",
+          style: TextStyle(fontSize: 12, color: Colors.blue),
+          textAlign: TextAlign.center,
+        ),
+        Image.asset("assets/images/qr.png", width: 150, height: 150),
+        buildLobby(context),
+        SizedBox(height: 16),
+        NesButton(
+          type: NesButtonType.success,
+          child: const Text("Start Game"),
+          onPressed: () {},
+        ),
+        NesButton(
+          type: NesButtonType.normal,
+          child: Text("Back"),
+          onPressed: () {
+            context.screen.goHome();
+          },
+        ),
+      ],
+    );
+  }
+}

@@ -1,5 +1,6 @@
 import 'package:dash_race/screens/home.dart';
 import 'package:dash_race/screens/lobby.dart';
+import 'package:dash_race/screens/play.dart';
 import 'package:flutter/material.dart';
 
 enum GameScreenEnum { home, lobby, gameplay, result, gameOver }
@@ -11,7 +12,7 @@ class ScreenControlProvider extends ChangeNotifier {
 
   void goHome() => _set(GameScreenEnum.home);
   void goLobby() => _set(GameScreenEnum.lobby);
-  // void goGame() => _set(GameScreenEnum.gameplay);
+  void goGamePlay() => _set(GameScreenEnum.gameplay);
   // void goResult() => _set(GameScreenEnum.result);
   // void goGameOver() => _set(GameScreenEnum.gameOver);
 
@@ -27,8 +28,7 @@ class ScreenControlProvider extends ChangeNotifier {
       case GameScreenEnum.lobby:
         return const LobbyScreen();
       case GameScreenEnum.gameplay:
-        // TODO: Handle this case.
-        throw UnimplementedError();
+        return const GamePlayScreen();
       case GameScreenEnum.result:
         // TODO: Handle this case.
         throw UnimplementedError();

@@ -53,7 +53,12 @@ class LobbyScreen extends StatelessWidget {
           type: NesButtonType.success,
           child: const Text("Start Game"),
           onPressed: () {
-            context.game.init();
+            context.game.init().then((v) => context.screen.goGamePlay());
+            // TODO: Add a counter
+            NesScaffoldMessenger.of(context).showSnackBar(
+              NesSnackbar(text: "Game started", type: NesSnackbarType.success),
+              alignment: Alignment.topCenter,
+            );
           },
         ),
         NesButton(

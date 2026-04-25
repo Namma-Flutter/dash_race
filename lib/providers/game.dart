@@ -61,12 +61,12 @@ class GameProvider with ChangeNotifier {
     if (players.isNotEmpty) {
       // car1 = players[0].car;
       // car2 = players[1].car;
-      // Need to change this !!! IMPORTANT !!!
+      // Need to change this - added for local testing !!! IMPORTANT !!!
       players[0].car.x = 213;
-      players[1].car.x = 213;
+      // players[1].car.x = 213; // Enable for 2 player testing
 
       players[0].car.y = 820;
-      players[1].car.y = 779;
+      // players[1].car.y = 779;
 
       /// Points is only for track S;
     }

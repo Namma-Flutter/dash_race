@@ -1,12 +1,12 @@
 import 'package:dash_race/components/bottom_scroller.dart';
 import 'package:dash_race/providers/game.dart';
+import 'package:dash_race/screens/track.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:nes_ui/nes_ui.dart';
 import 'package:provider/provider.dart';
 
 import '../helpers/extensions.dart';
-import '../helpers/game.dart';
 
 class GameScreen extends StatefulWidget {
   const GameScreen({super.key});
@@ -28,6 +28,7 @@ class _GameScreenState extends State<GameScreen>
       focusNode.requestFocus();
     });
 
+    ticker = createTicker(context.game.gameLoop)..start();
     // startServer();
   }
 
@@ -79,7 +80,8 @@ class _GameScreenState extends State<GameScreen>
                 return Focus(
                   focusNode: focusNode,
                   onKeyEvent: (node, event) {
-                    handleKeyEvent(event, gameProvider.car1, gameProvider.car2);
+                    // TODO !!!
+                    // handleKeyEvent(event, gameProvider.car1, gameProvider.car2);
                     return KeyEventResult.handled;
                   },
                   child: Column(
@@ -90,48 +92,18 @@ class _GameScreenState extends State<GameScreen>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         spacing: 0,
                         children: [
-                          SizedBox(
-                            width: 1000,
-                            height: 1000,
-                            child: Stack(
-                              children: [
-                                Image.asset(
-                                  gameProvider.currentTrack.imagePath,
-                                  width: 1000,
-                                  height: 1000,
-                                  fit: BoxFit.fill,
-                                ),
-
-                                gameProvider.canStart
-                                    ? Positioned(
-                                        left: gameProvider.car1.x,
-                                        top: gameProvider.car1.y,
-                                        child: Transform.rotate(
-                                          angle: gameProvider.car1.angle,
-                                          child: Image.asset(
-                                            gameProvider.car1.sprite,
-                                            width: gameProvider.carSize,
-                                            height: gameProvider.carSize,
-                                          ),
-                                        ),
-                                      )
-                                    : Container(),
-
-                                gameProvider.canStart
-                                    ? Positioned(
-                                        left: gameProvider.car2.x,
-                                        top: gameProvider.car2.y,
-                                        child: Transform.rotate(
-                                          angle: gameProvider.car2.angle,
-                                          child: Image.asset(
-                                            gameProvider.car2.sprite,
-                                            width: gameProvider.carSize,
-                                            height: gameProvider.carSize,
-                                          ),
-                                        ),
-                                      )
-                                    : Container(),
-                              ],
+                          AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 300),
+                            // Change later for better effects
+                            // switchInCurve: Curves.linear,
+                            // switchOutCurve: Curves.elasticOut,
+                            child: SizedBox(
+                              key: ValueKey(gameProvider.currentTrack.name),
+                              width: 1000,
+                              height: 1000,
+                              child: Track(
+                                key: ValueKey(gameProvider.currentTrack.name),
+                              ),
                             ),
                           ),
                           AnimatedSwitcher(

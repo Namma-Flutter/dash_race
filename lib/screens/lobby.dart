@@ -39,13 +39,22 @@ class LobbyScreen extends StatelessWidget {
           style: TextStyle(fontSize: 12, color: Colors.blue),
           textAlign: TextAlign.center,
         ),
+        Text(
+          context.watchGame.isMaxReached
+              ? "Maximum players reached for this track!!!"
+              : "",
+          style: TextStyle(fontSize: 10, color: Colors.red),
+          textAlign: TextAlign.center,
+        ),
         Image.asset("assets/images/qr.png", width: 150, height: 150),
         buildLobby(context),
         SizedBox(height: 16),
         NesButton(
           type: NesButtonType.success,
           child: const Text("Start Game"),
-          onPressed: () {},
+          onPressed: () {
+            context.game.init();
+          },
         ),
         NesButton(
           type: NesButtonType.normal,

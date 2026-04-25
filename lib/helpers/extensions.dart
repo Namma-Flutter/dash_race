@@ -6,7 +6,7 @@ import 'package:provider/provider.dart';
 
 extension ProviderExtensions on BuildContext {
   GameProvider get watchGame => watch<GameProvider>();
-  GameProvider get readGame => read<GameProvider>();
+  GameProvider get game => read<GameProvider>();
 
   ScreenControlProvider get watchScreen => watch<ScreenControlProvider>();
   ScreenControlProvider get screen => read<ScreenControlProvider>();

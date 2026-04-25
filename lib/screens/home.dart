@@ -25,14 +25,16 @@ class HomeScreen extends StatelessWidget {
           type: NesButtonType.primary,
           child: const Text("Play"),
           onPressed: () {
-            context.readServer.start().then((v) => context.screen.goLobby());
+            context.readServer.startIfNotRunning().then(
+              (v) => context.screen.goLobby(),
+            );
           },
         ),
         NesIterableOptions(
-          values: context.readGame.trackNames,
+          values: context.game.trackNames,
           value: context.watchGame.currentTrack.name,
           onChange: (name) {
-            context.readGame.changeTrack(name);
+            context.game.changeTrack(name);
           },
         ),
         Row(

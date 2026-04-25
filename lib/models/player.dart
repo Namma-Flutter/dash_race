@@ -5,7 +5,6 @@ class Player {
   String name;
   int score;
   Car car;
-  // WebSocket socket;
 
   // Movements
   bool up = false;
@@ -16,7 +15,6 @@ class Player {
   Player({
     required this.id,
     required this.name,
-    // required this.socket,
     required this.car,
     this.score = 0,
   });

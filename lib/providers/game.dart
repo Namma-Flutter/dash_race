@@ -39,6 +39,7 @@ class GameProvider with ChangeNotifier {
   bool leftPressed = false;
   bool rightPressed = false;
   bool canStart = false;
+  bool isMaxReached = false;
   Track currentTrack = Track(
     id: 1,
     name: "Track U",
@@ -49,19 +50,32 @@ class GameProvider with ChangeNotifier {
 
   late CollisionData collisionData;
 
-  late Car car1;
-  late Car car2;
+  // late Car car1;
+  // late Car car2;
 
   Future<void> init() async {
     canStart = false;
     notifyListeners();
     collisionData = await loadCollisionMask(currentTrack.collisionMapPath);
 
-    car1 = Car(x: 213, y: 820, sprite: "assets/images/car1.png");
-    car2 = Car(x: 213, y: 779, sprite: "assets/images/car2.png");
+    if (players.isNotEmpty) {
+      // car1 = players[0].car;
+      // car2 = players[1].car;
+      // Need to change this !!! IMPORTANT !!!
+      players[0].car.x = 213;
+      players[1].car.x = 213;
 
-    // canStart = true;
-    // notifyListeners();
+      players[0].car.y = 820;
+      players[1].car.y = 779;
+
+      /// Points is only for track S;
+    }
+
+    // car1 = Car(x: 213, y: 820, sprite: "assets/images/car1.png");
+    // car2 = Car(x: 213, y: 779, sprite: "assets/images/car2.png");
+
+    canStart = true;
+    notifyListeners();
   }
 
   void changeTrack(String name) {
@@ -172,57 +186,90 @@ class GameProvider with ChangeNotifier {
     // }
   }
 
-  void resolveCarCollision() {
-    final dx = car1.x - car2.x;
-    final dy = car1.y - car2.y;
+  // void resolveCarCollision() {
+  //   final dx = car1.x - car2.x;
+  //   final dy = car1.y - car2.y;
+  //
+  //   final distance = sqrt(dx * dx + dy * dy);
+  //   final minDistance = carSize * .8;
+  //
+  //   if (distance < minDistance) {
+  //     final overlap = minDistance - distance;
+  //     final pushX = dx / distance * overlap / 2;
+  //     final pushY = dy / distance * overlap / 2;
+  //
+  //     car1.x += pushX;
+  //     car1.y += pushY;
+  //
+  //     car2.x -= pushX;
+  //     car2.y -= pushY;
+  //
+  //     car1.speed *= .7;
+  //     car2.speed *= .7;
+  //   }
+  // }
 
-    final distance = sqrt(dx * dx + dy * dy);
-    final minDistance = carSize * .8;
+  void gameLoop(Duration elapsed) {
+    if (canStart) {
+      // print("GameLoop...");
+      players.forEach((p) {
+        updateCar(p.car);
+      });
+      // updateCar(car1);
+      // updateCar(car2);
 
-    if (distance < minDistance) {
-      final overlap = minDistance - distance;
-      final pushX = dx / distance * overlap / 2;
-      final pushY = dy / distance * overlap / 2;
-
-      car1.x += pushX;
-      car1.y += pushY;
-
-      car2.x -= pushX;
-      car2.y -= pushY;
-
-      car1.speed *= .7;
-      car2.speed *= .7;
+      // resolveCarCollision();
+      notifyListeners();
     }
   }
 
-  void gameLoop(Duration elapsed) {
-    // print("GameLoop...");
-    updateCar(car1);
-    updateCar(car2);
+  bool canJoin() {
+    if (currentTrack.name == "Track U") {
+      if (players.length == 4) {
+        isMaxReached = true;
+        notifyListeners();
+        return false;
+      }
+    } else {
+      if (players.length == 2) {
+        isMaxReached = true;
+        notifyListeners();
+        return false;
+      }
+    }
+    return true;
+  }
 
-    resolveCarCollision();
+  void handleJoin(Player player) {
+    players.add(player);
+    print("Player joined: ${player.name}");
+
     notifyListeners();
   }
 
-  void handleControllerMessage(Map data) {
-    if (data["type"] == "join") {
-      print("Player joined: ${data["name"]}");
-      players.add(
-        Player(
-          id: "0",
-          name: data["name"],
-          car: Car(x: 213, y: 820, sprite: "assets/images/car1.png"),
-        ),
-      );
-    }
+  void handleRemove(Player player) {
+    players.removeWhere((p) => p.id == player.id);
+    print("Removed player: ${player.name}");
+    isMaxReached = false;
 
+    notifyListeners();
+  }
+
+  void handleControllerMessage(Map data, Player player) {
     if (data["type"] == "input") {
       print(data);
       // {type: input, left: false, right: false, up: false, down: false}
+
       // car1.left = data["left"];
       // car1.right = data["right"];
       // car1.up = data["up"];
       // car1.down = data["down"];
+      // final Car car = players.firstWhere((p) => p.name == player.name).car;
+      final Car car = player.car;
+      car.left = data["left"];
+      car.right = data["right"];
+      car.up = data["up"];
+      car.down = data["down"];
     }
 
     notifyListeners();

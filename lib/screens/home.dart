@@ -1,6 +1,7 @@
 import 'package:dash_race/helpers/extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:nes_ui/nes_ui.dart';
+import 'package:pretty_qr_code/pretty_qr_code.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -23,12 +24,20 @@ class HomeScreen extends StatelessWidget {
         SizedBox(height: 16),
         NesButton(
           type: NesButtonType.primary,
-          child: const Text("Play"),
-          onPressed: () {
-            context.readServer.startIfNotRunning().then(
-              (v) => context.screen.goLobby(),
-            );
-          },
+          onPressed: context.watchServer.showLoading
+              ? null
+              : () {
+                  context.readServer.startIfNotRunning().then(
+                    (v) => context.screen.goLobby(),
+                  );
+                },
+          child: context.watchServer.showLoading
+              ? SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: const CircularProgressIndicator(color: Colors.white),
+                )
+              : const Text("Play"),
         ),
         NesIterableOptions(
           values: context.game.trackNames,
@@ -51,34 +60,23 @@ class HomeScreen extends StatelessWidget {
                     return NesDialog(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
+                        spacing: 16,
                         children: [
-                          const Text("Do you want to continue?"),
-
-                          const SizedBox(height: 12),
-
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              NesButton(
-                                type: NesButtonType.normal,
-                                onPressed: () {
-                                  Navigator.pop(context);
-                                },
-                                child: const Text("Cancel"),
-                              ),
-
-                              const SizedBox(width: 8),
-
-                              NesButton(
-                                type: NesButtonType.primary,
-                                onPressed: () {
-                                  Navigator.pop(context);
-
-                                  print("Continue pressed");
-                                },
-                                child: const Text("Continue"),
-                              ),
-                            ],
+                          const Text("Do you want to contribute?"),
+                          SizedBox(
+                            width: 120,
+                            height: 120,
+                            child: PrettyQrView.data(
+                              data:
+                                  "https://github.com/Namma-Flutter/dash_race",
+                            ),
+                          ),
+                          NesButton(
+                            type: NesButtonType.primary,
+                            onPressed: () {
+                              Navigator.pop(context);
+                            },
+                            child: const Text("Scan & Close"),
                           ),
                         ],
                       ),

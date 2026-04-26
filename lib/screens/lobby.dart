@@ -1,6 +1,7 @@
 import 'package:dash_race/helpers/extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:nes_ui/nes_ui.dart';
+import 'package:pretty_qr_code/pretty_qr_code.dart';
 
 class LobbyScreen extends StatelessWidget {
   const LobbyScreen({super.key});
@@ -46,19 +47,38 @@ class LobbyScreen extends StatelessWidget {
           style: TextStyle(fontSize: 10, color: Colors.red),
           textAlign: TextAlign.center,
         ),
-        Image.asset("assets/images/qr.png", width: 150, height: 150),
+        SizedBox(
+          width: 150,
+          height: 150,
+          child: PrettyQrView.data(
+            data: "http://${context.watchServer.ip!}:5173",
+          ),
+        ),
         buildLobby(context),
         SizedBox(height: 16),
         NesButton(
           type: NesButtonType.success,
           child: const Text("Start Game"),
           onPressed: () {
-            context.game.init().then((v) => context.screen.goGamePlay());
-            // TODO: Add a counter
-            NesScaffoldMessenger.of(context).showSnackBar(
-              NesSnackbar(text: "Game started", type: NesSnackbarType.success),
-              alignment: Alignment.topCenter,
-            );
+            if (context.game.players.isEmpty) {
+              NesScaffoldMessenger.of(context).showSnackBar(
+                NesSnackbar(
+                  text: "No players joined",
+                  type: NesSnackbarType.warning,
+                ),
+                alignment: Alignment.topCenter,
+              );
+            } else {
+              context.game.init().then((v) => context.screen.goGamePlay());
+              // TODO: Add a counter
+              NesScaffoldMessenger.of(context).showSnackBar(
+                NesSnackbar(
+                  text: "Game started",
+                  type: NesSnackbarType.success,
+                ),
+                alignment: Alignment.topCenter,
+              );
+            }
           },
         ),
         NesButton(

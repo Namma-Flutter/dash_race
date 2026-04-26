@@ -32,7 +32,7 @@ export default function App() {
     down: false
   });
 
-  const serverIP = "ws://192.168.1.5:4040/ws";
+  const serverIP = "ws://192.168.0.4:4040/ws";
 
   function connect() {
     goFullscreen();

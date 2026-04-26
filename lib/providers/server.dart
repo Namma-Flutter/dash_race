@@ -17,7 +17,10 @@ class ServerProvider with ChangeNotifier {
 
   GameProvider? _gameProvider;
   HttpServer? _server;
+  String? ip;
+
   bool _isRunning = false;
+  bool showLoading = false;
 
   void setGameProvider(GameProvider gp) {
     _gameProvider = gp;
@@ -37,6 +40,9 @@ class ServerProvider with ChangeNotifier {
       print("Server already running");
       return;
     }
+
+    showLoading = true;
+    notifyListeners();
 
     final handler = Pipeline().addMiddleware(logRequests()).addHandler((
       request,
@@ -91,13 +97,16 @@ class ServerProvider with ChangeNotifier {
       return Response.ok("Game server running");
     });
 
-    _server = await serve(handler, '0.0.0.0', 4040);
+    _server = await serve(handler, "0.0.0.0", 4040);
     _isRunning = true;
 
-    final ip = await getLocalIpAddress();
+    ip = await getLocalIpAddress();
 
     print("Server running at:");
     print("ws://$ip:4040/ws");
     print("http://$ip:4040");
+
+    showLoading = false;
+    notifyListeners();
   }
 }

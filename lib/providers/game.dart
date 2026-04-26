@@ -19,6 +19,8 @@ class GameProvider with ChangeNotifier {
     Track(id: 3, name: "Track N"),
     Track(id: 4, name: "Snow"),
   ];
+  final Offset checkpointA = Offset(835, 180);
+  final Offset checkpointB = Offset(120, 700);
   // final List<Player> playerScores = [
   //   Player("Sanjivy", 120),
   //   Player("Arun", 95),
@@ -45,6 +47,7 @@ class GameProvider with ChangeNotifier {
     name: "Track U",
   ); // Need to refactor this logic later
   double get halfCar => carSize / 2;
+  double checkpointRadius = 40;
   List<String> get trackNames => tracks.map((t) => t.name).toList();
   List<Player> players = [];
 
@@ -94,6 +97,31 @@ class GameProvider with ChangeNotifier {
       centerX + cos(angle) * halfCar,
       centerY + sin(angle) * halfCar,
     );
+  }
+
+  bool isNearCheckpoint(Car car, Offset checkpoint) {
+    final dx = car.x - checkpoint.dx;
+    final dy = car.y - checkpoint.dy;
+
+    return (dx * dx + dy * dy) <= (checkpointRadius * checkpointRadius);
+  }
+
+  void updatePlayerScore(Player player) {
+    final car = player.car;
+
+    // Step 1: Hit A
+    if (!player.hasPassedA && isNearCheckpoint(car, checkpointA)) {
+      player.hasPassedA = true;
+      print("${player.name} passed A");
+    }
+
+    // Step 2: Then hit B → score!
+    if (player.hasPassedA && isNearCheckpoint(car, checkpointB)) {
+      player.score += 1;
+      player.hasPassedA = false; // reset for next lap
+
+      print("${player.name} scored! Total: ${player.score}");
+    }
   }
 
   bool isRoadPixel(double px, double py) {
@@ -214,6 +242,7 @@ class GameProvider with ChangeNotifier {
       // print("GameLoop...");
       players.forEach((p) {
         updateCar(p.car);
+        updatePlayerScore(p);
       });
       // updateCar(car1);
       // updateCar(car2);

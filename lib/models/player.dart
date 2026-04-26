@@ -12,6 +12,8 @@ class Player {
   bool left = false;
   bool right = false;
 
+  bool hasPassedA = false;
+
   Player({
     required this.id,
     required this.name,

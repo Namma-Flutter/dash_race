@@ -30,6 +30,20 @@ class Track extends StatelessWidget {
           );
         }),
 
+        Positioned(
+          // A
+          left: 835,
+          top: 180,
+          child: Image.asset("assets/images/dash.png", width: 80, height: 80),
+        ),
+
+        Positioned(
+          // B
+          left: 120,
+          top: 700,
+          child: Image.asset("assets/images/dash.png", width: 80, height: 80),
+        ),
+
         // context.watchGame.canStart
         //     ? Positioned(
         //         left: context.game.car1.x,

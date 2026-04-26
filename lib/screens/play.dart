@@ -22,7 +22,7 @@ class GamePlayScreen extends StatelessWidget {
                   Text(player.name),
                 ],
               ),
-              Text("0"),
+              Text(player.score.toString()),
             ],
           );
         }).toList(),
@@ -44,7 +44,7 @@ class GamePlayScreen extends StatelessWidget {
         //   textAlign: TextAlign.center,
         // ),
         CountdownText(
-          initialSeconds: 120,
+          initialSeconds: 180,
           onComplete: () {
             print("Time's up!");
             // TODO: End game!

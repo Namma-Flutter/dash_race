@@ -44,7 +44,7 @@ class GamePlayScreen extends StatelessWidget {
                 style: TextStyle(fontSize: 48, color: Colors.red),
               )
             : CountdownText(
-                initialSeconds: 10,
+                initialSeconds: 120,
                 onComplete: () {
                   context.game.finish();
                 },

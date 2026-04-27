@@ -33,8 +33,8 @@ class GameProvider with ChangeNotifier {
   bool isMaxReached = false;
   bool isGameOver = false;
   Track currentTrack = Track(
-    id: 1,
-    name: "Track U",
+    id: 2,
+    name: "Track S",
   ); // Need to refactor this logic later
   double get halfCar => carSize / 2;
   double checkpointRadius = 40;

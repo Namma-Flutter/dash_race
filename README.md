@@ -93,6 +93,7 @@ const SERVER_IP = "192.168.x.x:4040";
 * All devices must be on the **same WiFi network**
 * Firewall should allow port `4040`
 * Desktop must stay running as host
+* Redis running locally at localhost:6379
 
 ---
 
@@ -102,11 +103,13 @@ const SERVER_IP = "192.168.x.x:4040";
 * **Dart Shelf** – WebSocket server
 * **React** – Mobile controller UI
 * **WebSocket** – Real-time communication
+* **Redis** - For leaderboard and scoring
 
 ---
 
 ## ⚠️ Notes
 
+* Redis should be up and running with permission granted to the desktop app
 * Max players 4 but, currently code wise limited to 2players
 * Only one host (Flutter app) should run at a time
 * If connection fails:
@@ -120,9 +123,10 @@ const SERVER_IP = "192.168.x.x:4040";
 ## 💡 Future Improvements
 
 * Reconnection support
-* Lobby system
+* Controller built using flutter
 * Game state sync improvements
-* Mobile app controller instead of web
+* Music and SFX
+* Online play via internet with support for Web
 
 ---
 

@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:dash_race/helpers/image_utils.dart';
+import 'package:dash_race/helpers/my_redis_service.dart';
 import 'package:dash_race/models/player.dart';
 import 'package:dash_race/models/track.dart';
 import 'package:flutter/material.dart';
@@ -21,19 +22,7 @@ class GameProvider with ChangeNotifier {
   ];
   final Offset checkpointA = Offset(835, 180);
   final Offset checkpointB = Offset(120, 700);
-  // final List<Player> playerScores = [
-  //   Player("Sanjivy", 120),
-  //   Player("Arun", 95),
-  //   Player("Karthik", 80),
-  //   Player("Priya", 75),
-  //   Player("Rahul", 60),
-  //   Player("Vikram", 58),
-  //   Player("Sneha", 50),
-  //   Player("Ajay", 48),
-  //   Player("Manoj", 45),
-  //   Player("Divya", 40),
-  //   Player("Extra1", 10),
-  // ];
+  final RedisService redis = RedisService();
 
   // Local movement controls;
   bool upPressed = false;
@@ -42,6 +31,7 @@ class GameProvider with ChangeNotifier {
   bool rightPressed = false;
   bool canStart = false;
   bool isMaxReached = false;
+  bool isGameOver = false;
   Track currentTrack = Track(
     id: 1,
     name: "Track U",
@@ -53,8 +43,13 @@ class GameProvider with ChangeNotifier {
 
   late CollisionData collisionData;
 
-  // late Car car1;
-  // late Car car2;
+  GameProvider() {
+    loadRedis();
+  }
+
+  void loadRedis() async {
+    await redis.connect();
+  }
 
   Future<void> init() async {
     canStart = false;
@@ -79,6 +74,50 @@ class GameProvider with ChangeNotifier {
 
     canStart = true;
     notifyListeners();
+  }
+
+  Future<void> saveHighScore(String playerName, int score) async {
+    final cmd = redis.client;
+
+    await cmd.send_object([
+      "ZADD",
+      "leaderboard",
+      "GT", // only update if greater
+      score,
+      playerName,
+    ]);
+  }
+
+  Future<List<Map<String, dynamic>>> getTop10() async {
+    final cmd = redis.client;
+    final result = await cmd.send_object([
+      "ZREVRANGE",
+      "leaderboard",
+      0,
+      9,
+      "WITHSCORES",
+    ]);
+
+    final List<Map<String, dynamic>> leaderboard = [];
+    for (int i = 0; i < result.length; i += 2) {
+      leaderboard.add({
+        "playerName": result[i],
+        "score": int.parse(result[i + 1].toString()),
+      });
+    }
+    print(leaderboard);
+    return leaderboard;
+  }
+
+  void finish() {
+    isGameOver = true;
+    notifyListeners();
+  }
+
+  Future<void> saveNContinue() async {
+    for (final Player player in players) {
+      await saveHighScore(player.name, player.score);
+    }
   }
 
   void changeTrack(String name) {

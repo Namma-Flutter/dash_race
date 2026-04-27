@@ -6,6 +6,29 @@ import 'package:pretty_qr_code/pretty_qr_code.dart';
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
+  Future<Widget> buildLeaderboard(BuildContext context) async {
+    final data = await context.game.getTop10();
+    return NesContainer(
+      label: "Top Players",
+      backgroundColor: Colors.green,
+      width: 360,
+      child: Column(
+        children: List.generate(data.length, (index) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text("${index}. ${data[index]["playerName"]}"),
+                Text("${data[index]["score"]}"),
+              ],
+            ),
+          );
+        }),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -19,8 +42,35 @@ class HomeScreen extends StatelessWidget {
           fit: BoxFit.contain,
           width: MediaQuery.of(context).size.width - 1000,
         ),
-        Text("No High Scorers"),
-        // buildLeaderboard(),
+        FutureBuilder(
+          future: context.game.getTop10(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return Text("No High Scorers");
+            }
+            return NesContainer(
+              label: "Top Players",
+              backgroundColor: Colors.green,
+              width: 360,
+              child: Column(
+                children: List.generate(snapshot.data!.length, (index) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          "${index}. ${snapshot.data![index]["playerName"]}",
+                        ),
+                        Text("${snapshot.data![index]["score"]}"),
+                      ],
+                    ),
+                  );
+                }),
+              ),
+            );
+          },
+        ),
         SizedBox(height: 16),
         NesButton(
           type: NesButtonType.primary,

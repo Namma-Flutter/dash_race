@@ -40,35 +40,6 @@ class _GameScreenState extends State<GameScreen>
     super.dispose();
   }
 
-  // Widget buildLeaderboard() {
-  //   final topPlayers = [...playerScores]
-  //     ..sort((a, b) => b.score.compareTo(a.score));
-  //
-  //   final top10 = topPlayers.take(10).toList();
-  //
-  //   return NesContainer(
-  //     label: "Top Players",
-  //     backgroundColor: Colors.green,
-  //     width: 360,
-  //     child: Column(
-  //       children: List.generate(top10.length, (index) {
-  //         final player = top10[index];
-  //
-  //         return Padding(
-  //           padding: const EdgeInsets.symmetric(vertical: 2),
-  //           child: Row(
-  //             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  //             children: [
-  //               Text("${index}. ${player.name}"),
-  //               Text("${player.score}"),
-  //             ],
-  //           ),
-  //         );
-  //       }),
-  //     ),
-  //   );
-  // }
-
   @override
   Widget build(BuildContext context) {
     return Consumer<GameProvider>(
@@ -123,22 +94,6 @@ class _GameScreenState extends State<GameScreen>
                               ),
                             ),
                           ),
-                          // MenuScreenController(
-                          //   onPlayPressed: () async {
-                          //     // Register init() and gameLoop events
-                          //     // await gameProvider.init();
-                          //     // ticker = createTicker(gameProvider.gameLoop)
-                          //     //   ..start();
-                          //
-                          //     // NesScaffoldMessenger.of(context).showSnackBar(
-                          //     //   NesSnackbar(
-                          //     //     text: "Starting...",
-                          //     //     type: NesSnackbarType.normal,
-                          //     //   ),
-                          //     //   alignment: Alignment.topCenter,
-                          //     // );
-                          //   },
-                          // ),
                         ],
                       ),
                       BottomScroller(),

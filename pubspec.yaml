@@ -14,6 +14,7 @@ dependencies:
   nes_ui: ^0.30.0
   pretty_qr_code: ^3.6.0
   provider: ^6.1.5+1
+  redis: ^4.1.0
   shelf: ^1.4.2
   shelf_web_socket: ^3.0.0
   window_manager: ^0.5.1

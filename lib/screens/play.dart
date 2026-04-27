@@ -38,27 +38,50 @@ class GamePlayScreen extends StatelessWidget {
       mainAxisSize: MainAxisSize.max,
       spacing: 16,
       children: [
-        // Text(
-        //   "120",
-        //   style: TextStyle(fontSize: 64, color: Colors.blue),
-        //   textAlign: TextAlign.center,
-        // ),
-        CountdownText(
-          initialSeconds: 180,
-          onComplete: () {
-            print("Time's up!");
-            // TODO: End game!
-          },
-        ),
+        context.watchGame.isGameOver
+            ? Text(
+                "Game Over",
+                style: TextStyle(fontSize: 48, color: Colors.red),
+              )
+            : CountdownText(
+                initialSeconds: 10,
+                onComplete: () {
+                  context.game.finish();
+                },
+              ),
         buildLaps(context),
         SizedBox(height: 16),
-        NesButton(
-          type: NesButtonType.error,
-          child: Text("Quit"),
-          onPressed: () {
-            context.screen.goHome();
-          },
-        ),
+        context.watchGame.isGameOver
+            ? NesButton(
+                type: NesButtonType.primary,
+                child: Text("Save & Continue"),
+                onPressed: () {
+                  NesScaffoldMessenger.of(context).showSnackBar(
+                    NesSnackbar(
+                      text: "Thanks for playing!!!",
+                      type: NesSnackbarType.warning,
+                    ),
+                    alignment: Alignment.topCenter,
+                  );
+                  context.game.saveNContinue().then(
+                    (v) => context.screen.goHome(),
+                  );
+                },
+              )
+            : NesButton(
+                type: NesButtonType.error,
+                child: Text("Quit"),
+                onPressed: () {
+                  NesScaffoldMessenger.of(context).showSnackBar(
+                    NesSnackbar(
+                      text: "Game exited by user!!!",
+                      type: NesSnackbarType.warning,
+                    ),
+                    alignment: Alignment.topCenter,
+                  );
+                  context.screen.goHome();
+                },
+              ),
       ],
     );
   }

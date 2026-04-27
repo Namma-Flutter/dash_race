@@ -93,7 +93,7 @@ const SERVER_IP = "192.168.x.x:4040";
 * All devices must be on the **same WiFi network**
 * Firewall should allow port `4040`
 * Desktop must stay running as host
-* Redis running locally at localhost:6379
+* Redis running locally at `localhost:6379`
 
 ---
 

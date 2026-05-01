@@ -1,0 +1,88 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            flutter-target: linux
+            enable-flag: --enable-linux-desktop
+            archive-name: dash_race-linux.tar.gz
+          - os: macos-latest
+            flutter-target: macos
+            enable-flag: --enable-macos-desktop
+            archive-name: dash_race-macos.zip
+          - os: windows-latest
+            flutter-target: windows
+            enable-flag: --enable-windows-desktop
+            archive-name: dash_race-windows.zip
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Enable desktop target
+        run: flutter config ${{ matrix.enable-flag }}
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build
+        run: flutter build ${{ matrix.flutter-target }} --release
+
+      - name: Archive (Linux)
+        if: runner.os == 'Linux'
+        run: tar -czf dash_race-linux.tar.gz -C build/linux/x64/release/bundle .
+
+      - name: Archive (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          cd "build/macos/Build/Products/Release"
+          zip -r "$GITHUB_WORKSPACE/dash_race-macos.zip" *.app
+
+      - name: Archive (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: Compress-Archive -Path "build/windows/x64/runner/Release/*" -DestinationPath dash_race-windows.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.archive-name }}
+          path: ${{ matrix.archive-name }}
+
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dash_race-linux.tar.gz
+            dash_race-macos.zip
+            dash_race-windows.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

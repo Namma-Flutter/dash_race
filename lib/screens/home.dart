@@ -55,9 +55,19 @@ class HomeScreen extends StatelessWidget {
           onPressed: context.watchServer.showLoading
               ? null
               : () {
-                  context.readServer.startIfNotRunning().then(
-                    (v) => context.screen.goLobby(),
-                  );
+                  if (context.game.currentTrack.name == "Track S") {
+                    context.readServer.startIfNotRunning().then(
+                      (v) => context.screen.goLobby(),
+                    );
+                  } else {
+                    NesScaffoldMessenger.of(context).showSnackBar(
+                      NesSnackbar(
+                        text: "Code Panala Inu",
+                        type: NesSnackbarType.warning,
+                      ),
+                      alignment: Alignment.topCenter,
+                    );
+                  }
                 },
           child: context.watchServer.showLoading
               ? SizedBox(

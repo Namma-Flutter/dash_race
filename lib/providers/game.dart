@@ -61,10 +61,15 @@ class GameProvider with ChangeNotifier {
       // car2 = players[1].car;
       // Need to change this - added for local testing !!! IMPORTANT !!!
       players[0].car.x = 213;
-      // players[1].car.x = 213; // Enable for 2 player testing
+      players[1].car.x = 213; // Enable for 2 player testing
+      // Disable for 2 players
+      players[2].car.x = 213;
+      players[3].car.x = 213;
 
       players[0].car.y = 820;
-      // players[1].car.y = 779;
+      players[1].car.y = 779;
+      players[2].car.y = 778;
+      players[3].car.y = 757;
 
       /// Points is only for track S;
     }
@@ -292,7 +297,7 @@ class GameProvider with ChangeNotifier {
   }
 
   bool canJoin() {
-    if (currentTrack.name == "Track U") {
+    if (currentTrack.name == "Track S") {
       if (players.length == 4) {
         isMaxReached = true;
         notifyListeners();

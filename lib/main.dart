@@ -50,6 +50,10 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(theme: flutterNesTheme(), home: GameScreen());
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: flutterNesTheme(),
+      home: GameScreen(),
+    );
   }
 }

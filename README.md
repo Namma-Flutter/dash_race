@@ -15,6 +15,38 @@ Players connect using their phones as controllers over WebSocket.
 
 ---
 
+## 📦 Installation
+
+Download the latest prebuilt executable for your platform from the [Releases page](https://github.com/Namma-Flutter/dash_race/releases).
+
+### Linux
+
+```bash
+# Download and extract
+tar -xzf dash_race-linux.tar.gz -C dash_race
+# Run the game
+./dash_race/dash_race
+```
+
+### macOS
+
+1. Download `dash_race-macos.zip` and extract it.
+2. macOS will block the app on first launch because it is not code-signed. To bypass Gatekeeper, run:
+
+   ```bash
+   xattr -cr dash_race.app
+   open dash_race.app
+   ```
+
+   Alternatively, right-click the `.app` → **Open** → click **Open** in the dialog.
+
+### Windows
+
+1. Download `dash_race-windows.zip` and extract it to any folder.
+2. Run `dash_race.exe` — no installer required.
+
+---
+
 ## 🧑‍💻 Local Setup Instructions
 
 ### 1️⃣ Run the Flutter Game (Desktop Mode)

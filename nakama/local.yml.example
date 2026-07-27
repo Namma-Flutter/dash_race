@@ -1,0 +1,40 @@
+# Copy to `local.yml` and fill in every CHANGE_ME.
+# This is Nakama's native config file — it holds the real secrets and is
+# gitignored. Generate strong keys with:  openssl rand -hex 32
+
+name: dashrace
+
+# ---- Admin console (https://<host>:7351) ----
+console:
+  username: "CHANGE_ME_CONSOLE_USER"
+  password: "CHANGE_ME_CONSOLE_PASSWORD"
+
+# ---- Client connection ----
+socket:
+  # Clients must send this exact value as their server key.
+  # Put the SAME value in the Flutter/React config files.
+  server_key: "CHANGE_ME_SERVER_KEY"
+
+# ---- Runtime module env (readable via ctx.env in main.ts) ----
+runtime:
+  http_key: "CHANGE_ME_HTTP_KEY"
+  env:
+    # The password players must enter to be allowed in. Do not share widely.
+    - "ACCESS_PASSWORD=CHANGE_ME_GAME_PASSWORD"
+    # Max controllers (players). 2-4.
+    - "MAX_PLAYERS=4"
+
+# ---- Session tokens ----
+session:
+  encryption_key: "CHANGE_ME_SESSION_KEY"
+  refresh_encryption_key: "CHANGE_ME_REFRESH_KEY"
+  token_expiry_sec: 7200
+
+# ---- Database ----
+# The password here MUST match POSTGRES_PASSWORD in .env
+database:
+  address:
+    - "postgres:CHANGE_ME_DB_PASSWORD@postgres:5432/nakama"
+
+logger:
+  level: "INFO"

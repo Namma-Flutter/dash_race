@@ -1,0 +1,82 @@
+# Dash Race — Nakama stack (Linode now, Raspberry Pi later).
+#
+# Bring-up (no TLS, quick IP testing):
+#     cp .env.example .env            # then edit .env
+#     cp local.yml.example local.yml  # then edit local.yml
+#     (cd modules && npm install && npm run build)
+#     docker compose up -d
+#   -> clients connect to  <SERVER_IP>:7350  with useSSL = false
+#
+# Production (TLS via Caddy, once DNS points at this box):
+#     docker compose --profile tls up -d
+#   -> clients connect to  <domain>:443  with useSSL = true
+#
+# NOTE: keep POSTGRES_PASSWORD (.env) in sync with database.address (local.yml).
+
+services:
+  postgres:
+    container_name: dashrace-postgres
+    image: ${POSTGRES_IMAGE:-postgres:16-alpine}
+    environment:
+      - POSTGRES_DB=nakama
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - dashrace-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-d", "nakama"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  nakama:
+    container_name: dashrace-nakama
+    image: ${NAKAMA_IMAGE:-heroiclabs/nakama:3.24.0}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    entrypoint:
+      - "/bin/sh"
+      - "-ecx"
+      - >
+        /nakama/nakama migrate up --config /nakama/data/local.yml &&
+        exec /nakama/nakama --config /nakama/data/local.yml
+    volumes:
+      - ./modules/build:/nakama/data/modules
+      - ./local.yml:/nakama/data/local.yml:ro
+    # Exposed for direct/IP testing. In production these can be dropped and all
+    # traffic routed through the Caddy TLS service below.
+    ports:
+      - "7349:7349" # gRPC API
+      - "7350:7350" # HTTP + realtime (WebSocket) API
+      - "7351:7351" # admin console
+    healthcheck:
+      test: ["CMD", "/nakama/nakama", "healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Optional TLS front for browsers on HTTPS. Enable with:  --profile tls
+  caddy:
+    container_name: dashrace-caddy
+    image: caddy:2-alpine
+    profiles: ["tls"]
+    depends_on:
+      - nakama
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DASHRACE_DOMAIN=${DASHRACE_DOMAIN}
+      - DASHRACE_CONSOLE_DOMAIN=${DASHRACE_CONSOLE_DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    restart: unless-stopped
+
+volumes:
+  dashrace-db:
+  caddy-data:
+  caddy-config:

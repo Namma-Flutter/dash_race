@@ -1,0 +1,14 @@
+# Automatic HTTPS via Let's Encrypt. Requires:
+#   - DASHRACE_DOMAIN / DASHRACE_CONSOLE_DOMAIN DNS A-records -> this server
+#   - ports 80 and 443 open
+# Clients then use host=<domain>, port=443, useSSL=true.
+
+{$DASHRACE_DOMAIN} {
+	# Nakama HTTP + realtime WebSocket API. Caddy proxies WS transparently.
+	reverse_proxy nakama:7350
+}
+
+{$DASHRACE_CONSOLE_DOMAIN} {
+	# Admin console. Consider restricting this (basic auth / IP allowlist).
+	reverse_proxy nakama:7351
+}

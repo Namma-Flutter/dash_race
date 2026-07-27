@@ -36,7 +36,7 @@ class LobbyScreen extends StatelessWidget {
       spacing: 16,
       children: [
         Text(
-          "Scan below QR to join and play the game",
+          "Scan the QR on your phone,\nenter the password & join the race",
           style: TextStyle(fontSize: 12, color: Colors.blue),
           textAlign: TextAlign.center,
         ),
@@ -51,7 +51,7 @@ class LobbyScreen extends StatelessWidget {
           width: 150,
           height: 150,
           child: PrettyQrView.data(
-            data: "http://${context.watchServer.ip!}:5173",
+            data: context.watchNakama.controllerUrl,
           ),
         ),
         buildLobby(context),

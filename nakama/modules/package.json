@@ -1,0 +1,13 @@
+{
+  "name": "dashrace-nakama-modules",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Nakama runtime module for Dash Race (password gate + singleton relay match)",
+  "scripts": {
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "nakama-runtime": "github:heroiclabs/nakama-common#v1.32.0",
+    "typescript": "^5.4.0"
+  }
+}

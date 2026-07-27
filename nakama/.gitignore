@@ -1,0 +1,5 @@
+# Secrets & generated artifacts — never commit these.
+.env
+local.yml
+modules/node_modules/
+modules/build/

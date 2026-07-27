@@ -1,19 +1,6 @@
-import 'package:redis/redis.dart';
-
-class RedisService {
-  late RedisConnection _connection;
-  Command? _command;
-
-  Future<void> connect() async {
-    _connection = RedisConnection();
-    _command = await _connection.connect('localhost', 6379);
-    print("Connected to Redis");
-  }
-
-  Command get client {
-    if (_command == null) {
-      throw Exception("Redis not connected. Call connect() first.");
-    }
-    return _command!;
-  }
-}
+/// Picks the platform-appropriate [RedisService]: the real dart:io client on
+/// native, or a no-op stub on web (where `package:redis` can't compile).
+///
+/// Callers just `import 'my_redis_service.dart'` and use `RedisService()`.
+export 'redis_service_web.dart'
+    if (dart.library.io) 'redis_service_io.dart';

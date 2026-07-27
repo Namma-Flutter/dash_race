@@ -6,6 +6,69 @@ import 'package:pretty_qr_code/pretty_qr_code.dart';
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
+  /// Prompt for the access password (validated server-side by Nakama).
+  Future<String?> _askPassword(BuildContext context) {
+    final controller = TextEditingController();
+    return showDialog<String>(
+      context: context,
+      builder: (ctx) {
+        return NesDialog(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text("Enter access password"),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: 240,
+                child: TextField(
+                  controller: controller,
+                  obscureText: true,
+                  autofocus: true,
+                  decoration: const InputDecoration(hintText: "Password"),
+                  onSubmitted: (v) => Navigator.pop(ctx, v),
+                ),
+              ),
+              const SizedBox(height: 16),
+              NesButton(
+                type: NesButtonType.primary,
+                onPressed: () => Navigator.pop(ctx, controller.text),
+                child: const Text("Connect"),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _startGame(BuildContext context) async {
+    if (context.game.currentTrack.name != "Track S") {
+      NesScaffoldMessenger.of(context).showSnackBar(
+        NesSnackbar(text: "Code Panala Inu", type: NesSnackbarType.warning),
+        alignment: Alignment.topCenter,
+      );
+      return;
+    }
+
+    final password = await _askPassword(context);
+    if (password == null || password.isEmpty || !context.mounted) return;
+
+    await context.nakama.connect(password);
+    if (!context.mounted) return;
+
+    if (context.nakama.isConnected) {
+      context.screen.goLobby();
+    } else {
+      NesScaffoldMessenger.of(context).showSnackBar(
+        NesSnackbar(
+          text: context.nakama.errorMessage ?? "Connection failed",
+          type: NesSnackbarType.warning,
+        ),
+        alignment: Alignment.topCenter,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -37,8 +100,11 @@ class HomeScreen extends StatelessWidget {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          "${index}. ${snapshot.data![index]["playerName"]}",
+                        Expanded(
+                          child: Text(
+                            "${index}. ${snapshot.data![index]["playerName"]}",
+                            style: TextStyle(overflow: TextOverflow.fade),
+                          ),
                         ),
                         Text("${snapshot.data![index]["score"]}"),
                       ],
@@ -52,24 +118,10 @@ class HomeScreen extends StatelessWidget {
         SizedBox(height: 16),
         NesButton(
           type: NesButtonType.primary,
-          onPressed: context.watchServer.showLoading
+          onPressed: context.watchNakama.showLoading
               ? null
-              : () {
-                  if (context.game.currentTrack.name == "Track S") {
-                    context.readServer.startIfNotRunning().then(
-                      (v) => context.screen.goLobby(),
-                    );
-                  } else {
-                    NesScaffoldMessenger.of(context).showSnackBar(
-                      NesSnackbar(
-                        text: "Code Panala Inu",
-                        type: NesSnackbarType.warning,
-                      ),
-                      alignment: Alignment.topCenter,
-                    );
-                  }
-                },
-          child: context.watchServer.showLoading
+              : () => _startGame(context),
+          child: context.watchNakama.showLoading
               ? SizedBox(
                   width: 16,
                   height: 16,

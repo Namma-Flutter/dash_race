@@ -5,6 +5,12 @@ import {
   FaArrowUp,
   FaArrowDown
 } from "react-icons/fa";
+import { Client } from "@heroiclabs/nakama-js";
+import { NAKAMA_CONFIG } from "./config";
+
+// Opcodes — must match the Nakama runtime module and the Flutter host.
+const OP_JOIN = 1; // controller -> host : { name }
+const OP_INPUT = 2; // controller -> host : { up, down, left, right }
 
 function goFullscreen() {
   const elem = document.documentElement;
@@ -20,11 +26,54 @@ function lockLandscape() {
   }
 }
 
+// Best-effort human-readable text from whatever the Nakama SDK throws.
+function errText(e) {
+  if (!e) return "";
+  if (typeof e === "string") return e;
+  const parts = [e.message, e.statusText, e.msg, e.status, e.code];
+  return parts.filter(Boolean).join(" ");
+}
+
+// Stable per-device id so the same phone maps to the same Nakama user.
+function getDeviceId() {
+  let id = localStorage.getItem("dashrace_device_id");
+  if (!id) {
+    id = "ctrl-" + Math.random().toString(36).slice(2) + Date.now();
+    localStorage.setItem("dashrace_device_id", id);
+  }
+  return id;
+}
+
+function ArrowBtn({ icon, active, onHold, onRelease }) {
+  return (
+    <button
+      style={{
+        ...styles.btn,
+        background: active ? "#e03030" : "#222",
+        transform: active ? "scale(0.94)" : "scale(1)",
+        touchAction: "none"
+      }}
+      onPointerDown={e => {
+        // Capture the pointer so the button shrinking to scale(0.94) — or a
+        // slight finger movement — does NOT fire pointerleave and release the
+        // key one frame after pressing it. This is what kept the cars still.
+        e.currentTarget.setPointerCapture?.(e.pointerId);
+        onHold();
+      }}
+      onPointerUp={onRelease}
+      onPointerCancel={onRelease}
+      onLostPointerCapture={onRelease}
+    >
+      {icon}
+    </button>
+  );
+}
+
 export default function App() {
-  const [socket, setSocket] = useState(null);
   const [name, setName] = useState("");
-  const [joined, setJoined] = useState(false);
-  const [connected, setConnected] = useState(false);
+  const [password, setPassword] = useState("");
+  const [status, setStatus] = useState("idle"); // idle | connecting | connected | error
+  const [errorMsg, setErrorMsg] = useState("");
   const [inputState, setInputState] = useState({
     left: false,
     right: false,
@@ -32,27 +81,9 @@ export default function App() {
     down: false
   });
 
-  const serverIP = "ws://10.114.73.184:4040/ws";
-
-  function connect() {
-    goFullscreen();
-    lockLandscape();
-
-    const ws = new WebSocket(serverIP);
-
-    ws.onopen = () => {
-      setConnected(true);
-      ws.send(JSON.stringify({ type: "join", name }));
-      setJoined(true);
-    };
-
-    ws.onclose = () => {
-      setConnected(false);
-      setJoined(false);
-    };
-
-    setSocket(ws);
-  }
+  const socketRef = useRef(null);
+  const matchIdRef = useRef(null);
+  const prevState = useRef(inputState);
 
   useEffect(() => {
     document.body.style.margin = "0";
@@ -60,17 +91,88 @@ export default function App() {
     document.body.style.background = "#111";
   }, []);
 
-  const prevState = useRef(inputState);
+  async function connect() {
+    if (!name || !password || status === "connecting") return;
+    setStatus("connecting");
+    setErrorMsg("");
 
+    try {
+      // goFullscreen();
+      // lockLandscape();
+
+      const { host, port, useSSL, serverKey, role } = NAKAMA_CONFIG;
+      const client = new Client(serverKey, host, String(port), useSSL);
+
+      // Password is validated server-side (beforeAuthenticateCustom).
+      const session = await client.authenticateCustom(
+        getDeviceId(),
+        true,
+        undefined,
+        { password }
+      );
+
+      const socket = client.createSocket(useSSL, false);
+      socket.ondisconnect = () => {
+        setStatus("error");
+        setErrorMsg("Disconnected from the game");
+      };
+      socket.onerror = () => {
+        setStatus("error");
+        setErrorMsg("Connection error");
+      };
+      await socket.connect(session, true);
+
+      // Ask the server for the single running game.
+      const rpcRes = await socket.rpc(
+        "find_or_create_game",
+        JSON.stringify({ role })
+      );
+      const matchId = JSON.parse(rpcRes.payload).matchId;
+
+      await socket.joinMatch(matchId);
+      await socket.sendMatchState(matchId, OP_JOIN, JSON.stringify({ name }));
+
+      socketRef.current = socket;
+      matchIdRef.current = matchId;
+      prevState.current = { left: false, right: false, up: false, down: false };
+      setStatus("connected");
+    } catch (e) {
+      const msg = errText(e).toLowerCase();
+      let friendly = "Could not connect to the game";
+      if (msg.includes("401") || msg.includes("unauthorized")) {
+        friendly = "Wrong password";
+      } else if (msg.includes("no active game")) {
+        friendly = "No game running yet — ask the host to press Play";
+      } else if (msg.includes("full")) {
+        friendly = "Game is full";
+      }
+      try {
+        socketRef.current && socketRef.current.disconnect(false);
+      } catch {
+        /* ignore */
+      }
+      socketRef.current = null;
+      matchIdRef.current = null;
+      setStatus("error");
+      setErrorMsg(friendly);
+    }
+  }
+
+  // Send input to the host only when it actually changes.
   useEffect(() => {
-    if (!socket) return;
+    const socket = socketRef.current;
+    const matchId = matchIdRef.current;
+    if (status !== "connected" || !socket || !matchId) return;
+
     const changed =
       JSON.stringify(prevState.current) !== JSON.stringify(inputState);
     if (changed) {
-      socket.send(JSON.stringify({ type: "input", ...inputState }));
       prevState.current = inputState;
+      socket
+        .sendMatchState(matchId, OP_INPUT, JSON.stringify(inputState))
+        .catch(() => {});
     }
-  }, [inputState, socket]);
+  }, [inputState, status]);
 
   function hold(key) {
     setInputState(prev => ({ ...prev, [key]: true }));
@@ -80,7 +182,9 @@ export default function App() {
     setInputState(prev => ({ ...prev, [key]: false }));
   }
 
-  if (!joined) {
+  if (status !== "connected") {
+    const busy = status === "connecting";
+    const canConnect = !!name && !!password && !busy;
     return (
       <div style={styles.joinScreen}>
         <div style={styles.joinCard}>
@@ -90,48 +194,42 @@ export default function App() {
             placeholder="Enter player name"
             value={name}
             onChange={e => setName(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && name && connect()}
+          />
+          <input
+            style={styles.input}
+            type="password"
+            placeholder="Access password"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && canConnect && connect()}
           />
           <button
             style={{
               ...styles.connectBtn,
-              opacity: name ? 1 : 0.4,
-              cursor: name ? "pointer" : "not-allowed"
+              opacity: canConnect ? 1 : 0.4,
+              cursor: canConnect ? "pointer" : "not-allowed"
             }}
             onClick={connect}
-            disabled={!name}
+            disabled={!canConnect}
           >
-            Connect &amp; Play
+            {busy ? "Connecting…" : "Connect & Play"}
           </button>
+          {status === "error" && errorMsg && (
+            <p style={styles.errorText}>{errorMsg}</p>
+          )}
           <p style={styles.statusText}>
             <span
               style={{
                 ...styles.statusDot,
-                background: connected ? "#4ade80" : "#888"
+                background: busy ? "#facc15" : "#888"
               }}
             />
-            {connected ? "Connected" : "Not connected"}
+            {busy ? "Connecting" : "Not connected"}
           </p>
         </div>
       </div>
     );
   }
-
-  const ArrowBtn = ({ dir, icon, active }) => (
-    <button
-      style={{
-        ...styles.btn,
-        background: active ? "#e03030" : "#222",
-        transform: active ? "scale(0.94)" : "scale(1)"
-      }}
-      onPointerDown={() => hold(dir)}
-      onPointerUp={() => release(dir)}
-      onPointerCancel={() => release(dir)}
-      onPointerLeave={() => release(dir)}
-    >
-      {icon}
-    </button>
-  );
 
   return (
     <div style={styles.controller}>
@@ -139,14 +237,16 @@ export default function App() {
       {/* LEFT SIDE — Up / Down (throttle / brake) */}
       <div style={styles.verticalGroup}>
         <ArrowBtn
-          dir="up"
           icon={<FaArrowUp size={40} />}
           active={inputState.up}
+          onHold={() => hold("up")}
+          onRelease={() => release("up")}
         />
         <ArrowBtn
-          dir="down"
           icon={<FaArrowDown size={40} />}
           active={inputState.down}
+          onHold={() => hold("down")}
+          onRelease={() => release("down")}
         />
       </div>
 
@@ -159,14 +259,16 @@ export default function App() {
       {/* RIGHT SIDE — Left / Right (steering) */}
       <div style={styles.horizontalGroup}>
         <ArrowBtn
-          dir="left"
           icon={<FaArrowLeft size={40} />}
           active={inputState.left}
+          onHold={() => hold("left")}
+          onRelease={() => release("left")}
         />
         <ArrowBtn
-          dir="right"
           icon={<FaArrowRight size={40} />}
           active={inputState.right}
+          onHold={() => hold("right")}
+          onRelease={() => release("right")}
         />
       </div>
 
@@ -219,6 +321,12 @@ const styles = {
     fontSize: 16,
     fontWeight: 600,
     letterSpacing: "0.5px"
+  },
+  errorText: {
+    margin: 0,
+    color: "#f87171",
+    fontSize: 13,
+    textAlign: "center"
   },
   statusText: {
     margin: 0,

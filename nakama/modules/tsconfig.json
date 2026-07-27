@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "es5",
+    "lib": ["es2017"],
+    "outFile": "build/index.js",
+    "typeRoots": ["./node_modules"],
+    "types": ["nakama-runtime"],
+    "removeComments": true,
+    "strict": false,
+    "noImplicitReturns": false,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["src/**/*.ts"]
+}

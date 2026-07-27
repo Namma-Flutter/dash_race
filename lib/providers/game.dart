@@ -23,6 +23,16 @@ class GameProvider with ChangeNotifier {
   final Offset checkpointA = Offset(835, 180);
   final Offset checkpointB = Offset(120, 700);
   final RedisService redis = RedisService();
+  bool _redisReady = false;
+
+  /// Spawn positions per player slot (currently tuned for Track S).
+  /// Indexing is bounded by [players.length] so joining with <4 players is safe.
+  static const List<Offset> _spawnPoints = [
+    Offset(213, 820),
+    Offset(213, 779),
+    Offset(213, 778),
+    Offset(213, 757),
+  ];
 
   // Local movement controls;
   bool upPressed = false;
@@ -48,70 +58,80 @@ class GameProvider with ChangeNotifier {
   }
 
   void loadRedis() async {
-    await redis.connect();
+    try {
+      await redis.connect();
+      _redisReady = true;
+    } catch (e) {
+      _redisReady = false;
+      debugPrint("Redis unavailable (leaderboard disabled): $e");
+    }
   }
 
   Future<void> init() async {
     canStart = false;
+    isGameOver = false;
+    isMaxReached = false;
     notifyListeners();
     collisionData = await loadCollisionMask(currentTrack.collisionMapPath);
 
-    if (players.isNotEmpty) {
-      // car1 = players[0].car;
-      // car2 = players[1].car;
-      // Need to change this - added for local testing !!! IMPORTANT !!!
-      players[0].car.x = 213;
-      players[1].car.x = 213; // Enable for 2 player testing
-      // Disable for 2 players
-      players[2].car.x = 213;
-      players[3].car.x = 213;
-
-      players[0].car.y = 820;
-      players[1].car.y = 779;
-      players[2].car.y = 778;
-      players[3].car.y = 757;
-
-      /// Points is only for track S;
+    // Position only the players that actually joined. Previously this indexed
+    // players[2]/[3] unconditionally and crashed with <4 players.
+    for (int i = 0; i < players.length && i < _spawnPoints.length; i++) {
+      final car = players[i].car;
+      car.x = _spawnPoints[i].dx;
+      car.y = _spawnPoints[i].dy;
+      // Reset per-round state so a replay doesn't inherit the last race.
+      car.angle = 0;
+      car.speed = 0;
+      car.up = car.down = car.left = car.right = false;
+      players[i].hasPassedA = false;
+      players[i].score = 0;
     }
-
-    // car1 = Car(x: 213, y: 820, sprite: "assets/images/car1.png");
-    // car2 = Car(x: 213, y: 779, sprite: "assets/images/car2.png");
 
     canStart = true;
     notifyListeners();
   }
 
   Future<void> saveHighScore(String playerName, int score) async {
-    final cmd = redis.client;
-
-    await cmd.send_object([
-      "ZADD",
-      "leaderboard",
-      "GT", // only update if greater
-      score,
-      playerName,
-    ]);
+    if (!_redisReady) return;
+    try {
+      final cmd = redis.client;
+      await cmd.send_object([
+        "ZADD",
+        "leaderboard",
+        "GT", // only update if greater
+        score,
+        playerName,
+      ]);
+    } catch (e) {
+      debugPrint("saveHighScore failed: $e");
+    }
   }
 
   Future<List<Map<String, dynamic>>> getTop10() async {
-    final cmd = redis.client;
-    final result = await cmd.send_object([
-      "ZREVRANGE",
-      "leaderboard",
-      0,
-      9,
-      "WITHSCORES",
-    ]);
+    if (!_redisReady) return [];
+    try {
+      final cmd = redis.client;
+      final result = await cmd.send_object([
+        "ZREVRANGE",
+        "leaderboard",
+        0,
+        9,
+        "WITHSCORES",
+      ]);
 
-    final List<Map<String, dynamic>> leaderboard = [];
-    for (int i = 0; i < result.length; i += 2) {
-      leaderboard.add({
-        "playerName": result[i],
-        "score": int.parse(result[i + 1].toString()),
-      });
+      final List<Map<String, dynamic>> leaderboard = [];
+      for (int i = 0; i < result.length; i += 2) {
+        leaderboard.add({
+          "playerName": result[i],
+          "score": int.parse(result[i + 1].toString()),
+        });
+      }
+      return leaderboard;
+    } catch (e) {
+      debugPrint("getTop10 failed: $e");
+      return [];
     }
-    print(leaderboard);
-    return leaderboard;
   }
 
   void finish() {
@@ -282,22 +302,17 @@ class GameProvider with ChangeNotifier {
   // }
 
   void gameLoop(Duration elapsed) {
-    if (canStart) {
-      // print("GameLoop...");
+    if (canStart && !isGameOver) {
       players.forEach((p) {
         updateCar(p.car);
         updatePlayerScore(p);
       });
-      // updateCar(car1);
-      // updateCar(car2);
-
-      // resolveCarCollision();
       notifyListeners();
     }
   }
 
   bool canJoin() {
-    if (currentTrack.name == "Track S") {
+    if (currentTrack.name == "Track U") {
       if (players.length == 4) {
         isMaxReached = true;
         notifyListeners();
@@ -330,14 +345,6 @@ class GameProvider with ChangeNotifier {
 
   void handleControllerMessage(Map data, Player player) {
     if (data["type"] == "input") {
-      print(data);
-      // {type: input, left: false, right: false, up: false, down: false}
-
-      // car1.left = data["left"];
-      // car1.right = data["right"];
-      // car1.up = data["up"];
-      // car1.down = data["down"];
-      // final Car car = players.firstWhere((p) => p.name == player.name).car;
       final Car car = player.car;
       car.left = data["left"];
       car.right = data["right"];

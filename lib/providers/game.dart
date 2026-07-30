@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 import '../models/car.dart';
 
 class GameProvider with ChangeNotifier {
-  final double maxSpeed = 7; // 5 is good
+  final double maxSpeed = 5; // 5 is good
   final double acceleration = 0.25;
   final double friction = 0.06;
   final double rotationSpeed = 0.05;

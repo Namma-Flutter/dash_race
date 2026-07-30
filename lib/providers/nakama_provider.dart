@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:dash_race/config/config.dart';
@@ -103,10 +104,62 @@ class NakamaProvider with ChangeNotifier {
       await _socket!.joinMatch(_matchId!);
 
       _setState(NakamaConnectionState.connected);
+
+      // Warm the leaderboard cache for the home screen (best-effort).
+      unawaited(fetchTopScores());
     } catch (e) {
       errorMessage = _friendlyError(e);
       await _cleanup();
       _setState(NakamaConnectionState.error);
+    }
+  }
+
+  /// Push the final scores to Nakama's leaderboard — one record per player,
+  /// written under each player's own Nakama user id — then refresh the cache.
+  Future<void> submitScores() async {
+    final socket = _socket;
+    if (socket == null || _playersByUser.isEmpty) return;
+
+    final scores = _playersByUser.entries
+        .map((e) => {
+              'userId': e.key,
+              'name': e.value.name,
+              'score': e.value.score,
+            })
+        .toList();
+    try {
+      await socket.rpc(
+        id: 'submit_scores',
+        payload: jsonEncode({'scores': scores}),
+      );
+    } catch (e) {
+      debugPrint('submit_scores failed: $e');
+    }
+    await fetchTopScores();
+  }
+
+  /// Fetch the top scores from Nakama and cache them in [GameProvider] for the
+  /// home screen to display. Requires an active connection.
+  Future<void> fetchTopScores() async {
+    final socket = _socket;
+    final game = _game;
+    if (socket == null || game == null) return;
+    try {
+      final res = await socket.rpc(id: 'list_top_scores');
+      final decoded = jsonDecode(res.payload) as Map<String, dynamic>;
+      final records = (decoded['records'] as List?) ?? const [];
+      final scores = records
+          .whereType<Map>()
+          .map((r) => <String, dynamic>{
+                'playerName': (r['name'] ?? 'Player').toString(),
+                'score': r['score'] is int
+                    ? r['score'] as int
+                    : int.tryParse('${r['score']}') ?? 0,
+              })
+          .toList();
+      game.setTopScores(scores);
+    } catch (e) {
+      debugPrint('list_top_scores failed: $e');
     }
   }
 

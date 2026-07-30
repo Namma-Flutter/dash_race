@@ -83,10 +83,10 @@ class HomeScreen extends StatelessWidget {
           width: MediaQuery.of(context).size.width - 1000,
         ),
         // TODO: Need to fix re-building issues to avoid calling redis multiple times
-        FutureBuilder(
-          future: context.game.getTop10(),
-          builder: (context, snapshot) {
-            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+        Builder(
+          builder: (context) {
+            final scores = context.watchGame.topScores;
+            if (scores.isEmpty) {
               return Text("No High Scorers");
             }
             return NesContainer(
@@ -94,7 +94,7 @@ class HomeScreen extends StatelessWidget {
               backgroundColor: Colors.green,
               width: 360,
               child: Column(
-                children: List.generate(snapshot.data!.length, (index) {
+                children: List.generate(scores.length, (index) {
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 2),
                     child: Row(
@@ -102,11 +102,11 @@ class HomeScreen extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            "${index}. ${snapshot.data![index]["playerName"]}",
+                            "${index + 1}. ${scores[index]["playerName"]}",
                             style: TextStyle(overflow: TextOverflow.fade),
                           ),
                         ),
-                        Text("${snapshot.data![index]["score"]}"),
+                        Text("${scores[index]["score"]}"),
                       ],
                     ),
                   );

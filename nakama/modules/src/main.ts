@@ -16,6 +16,7 @@
 const MATCH_MODULE = 'dashrace';
 const MATCH_LABEL = 'dashrace';
 const TICK_RATE = 30; // relay ticks/sec; inputs are edge-triggered so this is plenty
+const LEADERBOARD_ID = 'dashrace_highscores';
 
 // Opcodes — same payloads you already send over the local WebSocket.
 const OP_JOIN = 1; // controller -> host : { name }
@@ -45,6 +46,8 @@ function InitModule(
 ): void {
   initializer.registerBeforeAuthenticateCustom(beforeAuthCustom);
   initializer.registerRpc('find_or_create_game', rpcFindOrCreateGame);
+  initializer.registerRpc('submit_scores', rpcSubmitScores);
+  initializer.registerRpc('list_top_scores', rpcListTopScores);
   initializer.registerMatch(MATCH_MODULE, {
     matchInit: matchInit,
     matchJoinAttempt: matchJoinAttempt,
@@ -54,7 +57,73 @@ function InitModule(
     matchTerminate: matchTerminate,
     matchSignal: matchSignal,
   });
+
+  // Create the shared high-score leaderboard once. "best" keeps each player's
+  // highest score (like the old Redis ZADD GT), sorted highest-first.
+  try {
+    nk.leaderboardCreate(
+      LEADERBOARD_ID,
+      false, // non-authoritative: records written via our RPC
+      nkruntime.SortOrder.DESCENDING,
+      nkruntime.Operator.BEST,
+    );
+  } catch (e) {
+    // Already exists — fine.
+  }
+
   logger.info('Dash Race module loaded (max players from env MAX_PLAYERS)');
+}
+
+// -----------------------------------------------------------------------------
+// RPC: submit final scores (host only). The host holds every player's Nakama
+// userId, so we write each record under its own owner — giving one best-score
+// entry per player. Must be authenticated (a real session), not http_key.
+//   payload: { "scores": [ { "userId": "..", "name": "..", "score": 3 }, ... ] }
+// -----------------------------------------------------------------------------
+function rpcSubmitScores(
+  ctx: nkruntime.Context,
+  logger: nkruntime.Logger,
+  nk: nkruntime.Nakama,
+  payload: string,
+): string {
+  if (!ctx.userId) {
+    throw Error('auth required');
+  }
+  let input: any = {};
+  try {
+    input = payload ? JSON.parse(payload) : {};
+  } catch (e) {
+    input = {};
+  }
+  const scores: any[] = input.scores || [];
+  for (let i = 0; i < scores.length; i++) {
+    const s = scores[i];
+    if (!s || !s.userId) continue;
+    const name = (s.name || 'Player').toString();
+    const score = Math.max(0, Math.floor(Number(s.score) || 0));
+    nk.leaderboardRecordWrite(LEADERBOARD_ID, s.userId, name, score);
+  }
+  return JSON.stringify({ ok: true });
+}
+
+// -----------------------------------------------------------------------------
+// RPC: list the top scores. Read-only, safe to expose.
+//   returns: { "records": [ { "name": "..", "score": 3 }, ... ] }
+// -----------------------------------------------------------------------------
+function rpcListTopScores(
+  ctx: nkruntime.Context,
+  logger: nkruntime.Logger,
+  nk: nkruntime.Nakama,
+  payload: string,
+): string {
+  const result = nk.leaderboardRecordsList(LEADERBOARD_ID, [], 10);
+  const records: any[] = [];
+  const list = result.records || [];
+  for (let i = 0; i < list.length; i++) {
+    const r = list[i];
+    records.push({ name: r.username || 'Player', score: r.score });
+  }
+  return JSON.stringify({ records: records });
 }
 
 // -----------------------------------------------------------------------------

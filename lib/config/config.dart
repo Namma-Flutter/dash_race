@@ -1,50 +1,42 @@
-/// Central place for Dash Race server credentials (the game display / host).
+/// Server config for the game display (host), read at BUILD TIME from
+/// `--dart-define` values (Flutter has no runtime `.env`).
 ///
-/// Fill these in with your Linode Nakama server details. When you later move
-/// the server to a Raspberry Pi, usually only [host] (and maybe [port]/[useSsl])
-/// changes — nothing else.
+/// Provide them one of these ways:
+///   • local:  flutter run  -d chrome --dart-define-from-file=dart_defines.json
+///   • Vercel: vercel-build.sh maps the project's env vars into --dart-define
 ///
-/// NOTE: the access password is NOT stored here. It is entered at runtime on
-/// the host screen and validated by the Nakama server, so the secret never
-/// ships inside the built web app.
+/// The access password is NOT here — it's entered at runtime on the host screen
+/// and validated by Nakama, so the secret never ships in the built web app.
+/// (host/port/ssl/serverKey ARE baked into the bundle; none of them is secret.)
 class ServerConfig {
   ServerConfig._();
 
-  // ---------------------------------------------------------------------------
-  // Nakama connection — CHANGE THESE
-  // ---------------------------------------------------------------------------
+  /// Domain / IP of your Nakama server.
+  static const String host =
+      String.fromEnvironment('NAKAMA_HOST', defaultValue: 'localhost');
 
-  /// Linode public IP or domain pointing at your Nakama server.
-  /// Examples: '172.104.xx.xx'  or  'xxx.example.com'
-  static const String host = 'xxx.xxx.xx';
-
-  /// Nakama client API port. MUST match controller/src/config.js.
-  /// You front Nakama with nginx on 443, so go through it with TLS.
-  static const int port = 443;
+  /// Nakama client API port. MUST match the controller's VITE_NAKAMA_PORT.
+  /// 443 when fronted by nginx/Caddy TLS; 7350 for direct / IP testing.
+  static const int port =
+      int.fromEnvironment('NAKAMA_PORT', defaultValue: 7350);
 
   /// true  -> wss/https (REQUIRED when the web app itself is served over HTTPS)
   /// false -> ws/http   (only for quick local / IP testing)
-  static const bool useSsl = true;
+  static const bool useSsl =
+      bool.fromEnvironment('NAKAMA_SSL', defaultValue: false);
 
   /// Must equal `socket.server_key` in the server's local.yml.
-  static const String serverKey = 'xxxx';
+  static const String serverKey =
+      String.fromEnvironment('NAKAMA_SERVER_KEY', defaultValue: 'defaultkey');
 
-  // ---------------------------------------------------------------------------
-  // Role — this build is the game display / host (it runs the physics sim).
-  // ---------------------------------------------------------------------------
+  /// This build is the game display / host (it runs the physics sim).
   static const String role = 'host';
 
   /// URL of the hosted React controller that players open on their phones.
-  /// Shown as the lobby QR code. During local testing this can be the Vite
-  /// dev server, e.g. `http://YOUR_IP:5173`.
-  // For local testing this is the Vite dev server on your machine's LAN IP so a
-  // phone on the same WiFi can scan it. Update the IP if yours differs
-  // (`npm run dev` prints the Network URL). Only affects the lobby QR.
-  static const String controllerUrl = 'http://192.168.0.6:5173';
-
-  // ---------------------------------------------------------------------------
-  // Admin console (for your reference only — the app does not use this):
-  //   URL:  http(s)://<host>:7351   (or your console subdomain behind Caddy)
-  //   user/pass: set via console.username / console.password in local.yml
-  // ---------------------------------------------------------------------------
+  /// Shown as the lobby QR code. For local testing point it at the Vite dev
+  /// server on your LAN IP (e.g. http://192.168.0.6:5173).
+  static const String controllerUrl = String.fromEnvironment(
+    'CONTROLLER_URL',
+    defaultValue: 'http://localhost:5173',
+  );
 }

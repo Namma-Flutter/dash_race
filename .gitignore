@@ -4,6 +4,12 @@
 *.pyc
 *.swp
 .DS_Store
+
+# Env / deploy — real dart-defines and the Vercel-fetched SDK
+dart_defines.json
+.env
+.vercel
+/flutter/
 .atom/
 .build/
 .buildlog/

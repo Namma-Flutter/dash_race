@@ -1,0 +1,7 @@
+{
+  "NAKAMA_HOST": "nakama.example.com",
+  "NAKAMA_PORT": "443",
+  "NAKAMA_SSL": "true",
+  "NAKAMA_SERVER_KEY": "defaultkey",
+  "CONTROLLER_URL": "https://controller.example.com"
+}

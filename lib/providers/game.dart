@@ -1,7 +1,6 @@
 import 'dart:math';
 
 import 'package:dash_race/helpers/image_utils.dart';
-import 'package:dash_race/helpers/my_redis_service.dart';
 import 'package:dash_race/models/player.dart';
 import 'package:dash_race/models/track.dart';
 import 'package:flutter/material.dart';
@@ -22,8 +21,11 @@ class GameProvider with ChangeNotifier {
   ];
   final Offset checkpointA = Offset(835, 180);
   final Offset checkpointB = Offset(120, 700);
-  final RedisService redis = RedisService();
-  bool _redisReady = false;
+
+  /// Top scores from Nakama's leaderboard, cached for the home screen.
+  /// Populated by [NakamaProvider] after the host connects. Each entry:
+  /// `{ "playerName": String, "score": int }`.
+  List<Map<String, dynamic>> topScores = [];
 
   /// Spawn positions per player slot (currently tuned for Track S).
   /// Indexing is bounded by [players.length] so joining with <4 players is safe.
@@ -53,18 +55,10 @@ class GameProvider with ChangeNotifier {
 
   late CollisionData collisionData;
 
-  GameProvider() {
-    loadRedis();
-  }
-
-  void loadRedis() async {
-    try {
-      await redis.connect();
-      _redisReady = true;
-    } catch (e) {
-      _redisReady = false;
-      debugPrint("Redis unavailable (leaderboard disabled): $e");
-    }
+  /// Replace the cached leaderboard (called by NakamaProvider after fetching).
+  void setTopScores(List<Map<String, dynamic>> scores) {
+    topScores = scores;
+    notifyListeners();
   }
 
   Future<void> init() async {
@@ -92,57 +86,9 @@ class GameProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> saveHighScore(String playerName, int score) async {
-    if (!_redisReady) return;
-    try {
-      final cmd = redis.client;
-      await cmd.send_object([
-        "ZADD",
-        "leaderboard",
-        "GT", // only update if greater
-        score,
-        playerName,
-      ]);
-    } catch (e) {
-      debugPrint("saveHighScore failed: $e");
-    }
-  }
-
-  Future<List<Map<String, dynamic>>> getTop10() async {
-    if (!_redisReady) return [];
-    try {
-      final cmd = redis.client;
-      final result = await cmd.send_object([
-        "ZREVRANGE",
-        "leaderboard",
-        0,
-        9,
-        "WITHSCORES",
-      ]);
-
-      final List<Map<String, dynamic>> leaderboard = [];
-      for (int i = 0; i < result.length; i += 2) {
-        leaderboard.add({
-          "playerName": result[i],
-          "score": int.parse(result[i + 1].toString()),
-        });
-      }
-      return leaderboard;
-    } catch (e) {
-      debugPrint("getTop10 failed: $e");
-      return [];
-    }
-  }
-
   void finish() {
     isGameOver = true;
     notifyListeners();
-  }
-
-  Future<void> saveNContinue() async {
-    for (final Player player in players) {
-      await saveHighScore(player.name, player.score);
-    }
   }
 
   void changeTrack(String name) {

@@ -63,7 +63,7 @@ class GamePlayScreen extends StatelessWidget {
                     ),
                     alignment: Alignment.topCenter,
                   );
-                  context.game.saveNContinue().then(
+                  context.nakama.submitScores().then(
                     (v) => context.screen.goHome(),
                   );
                 },
